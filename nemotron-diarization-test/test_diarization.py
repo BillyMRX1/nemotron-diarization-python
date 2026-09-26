@@ -9,11 +9,20 @@ from pathlib import Path
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("audio", type=Path, help="Path to a WAV recording")
+    parser.add_argument("--voice-profile", type=Path, help="Optional local .voice.json profile created by enroll_voice.py")
+    parser.add_argument("--match-threshold", type=float, default=0.86, help="Cosine threshold for voice matching (default 0.86; needs calibration)")
     args = parser.parse_args()
     if not args.audio.is_file():
         parser.error(f"Audio file does not exist: {args.audio}")
     if args.audio.suffix.lower() != ".wav":
         parser.error("This experiment accepts WAV files.")
+    if not -1 <= args.match_threshold <= 1:
+        parser.error("--match-threshold must be between -1 and 1.")
+
+    profile = None
+    if args.voice_profile:
+        from voice_matching import load_profile
+        profile = load_profile(args.voice_profile)
 
     import numpy as np
     import soundfile as sf
@@ -65,9 +74,19 @@ def main():
         torch.cuda.synchronize()
     inference_time = time.perf_counter() - started
     segments = processor.extract_speaker_dict(logits, inputs.attention_mask)[0]
+    labels = {}
+    if profile is not None:
+        from voice_matching import match_speakers
+        match_started = time.perf_counter()
+        labels = match_speakers(audio, expected_rate, segments, profile, device, args.match_threshold)
+        if cuda:
+            torch.cuda.synchronize()
+        print(f"Voice matching time: {time.perf_counter() - match_started:.2f} sec (includes voice model loading)")
     print("\nDiarization:")
     for segment in segments:
-        print(f"speaker_{segment['Speaker']}: {segment['Start']:.2f}s -> {segment['End']:.2f}s")
+        speaker = segment['Speaker']
+        label = f"{labels[speaker]} (speaker_{speaker})" if speaker in labels else f"speaker_{speaker}"
+        print(f"{label}: {segment['Start']:.2f}s -> {segment['End']:.2f}s")
     if not segments:
         print("(No speaker segments detected.)")
     print(f"Number of detected speakers: {len({s['Speaker'] for s in segments})}")

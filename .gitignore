@@ -12,3 +12,6 @@ smoke-test-output.txt
 smoke-test-stderr.txt
 .env
 .env.*
+profiles/
+*.voice.json
+local-test-*

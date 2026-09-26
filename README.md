@@ -10,6 +10,7 @@ use the official Hugging Face implementation. This is an independent sample,
 not an NVIDIA-maintained repository.
 
 There is no transcription, translation, summarization, server, or UI.
+Optional voice enrollment adds a second model to match a speaker to a saved name.
 
 ## Setup on Windows (PowerShell)
 
@@ -56,6 +57,90 @@ python test_diarization.py meeting_converted.wav
 ```
 
 Audio files are deliberately excluded from Git. Supply your own recording.
+
+## Optional: enroll a voice and recognize it later
+
+This belongs in the same sample: Nemotron still produces speaker timestamps;
+a separate voice-verification step can attach a saved name. It does not retrain
+Nemotron or teach it persistent identities.
+
+From `nemotron-diarization-test`, with the virtual environment activated:
+
+```powershell
+# billy_only.wav must contain ONLY Billy's voice, ideally 10-30 seconds.
+python enroll_voice.py billy_only.wav --name Billy
+
+# Compare speakers in a different recording with that saved profile.
+python test_diarization.py meeting_converted.wav --voice-profile profiles/billy.voice.json
+```
+
+Enrollment saves `profiles/billy.voice.json` next to the scripts. To choose a
+different destination, pass `--output profiles/billy_new.voice.json`. Existing
+profiles are never overwritten. Delete a profile locally to forget it, or create
+a new one to replace an old enrollment. All `profiles/` directories and
+`*.voice.json` files are excluded from Git, along with recordings. Profiles
+contain a name, model metadata, and an embedding, not the original audio; treat
+them as private voice data. They are plain local JSON, not encrypted storage.
+
+The second model is [`microsoft/wavlm-base-plus-sv`](https://huggingface.co/microsoft/wavlm-base-plus-sv#speaker-verification).
+Its official example uses `Wav2Vec2FeatureExtractor`, `WavLMForXVector`,
+normalized embeddings, and cosine similarity. It downloads automatically through
+the Hugging Face cache. Our existing dependencies suffice; no new Python packages
+are needed. It runs on CUDA when available and CPU otherwise. A saved profile
+records the model revision, which is reused when matching. Plain diarization
+without `--voice-profile` never loads this second model.
+
+This sample supports one saved identity per run. Enrollment assumes single-speaker
+speech; it cannot check that the person is actually the name supplied. Do not use
+a whole multi-speaker meeting as enrollment. It requires at least 5 seconds of
+usable audio, splits input into 2-10 second clips, and uses at most six clips.
+Its simple energy check rejects silence, not music or other non-speech sounds.
+
+For matching, the sample subtracts overlapping speakers' intervals, skips clips
+shorter than 2 seconds, and compares up to three clips per speaker, requiring at
+least 5 seconds total. It averages
+normalized clip embeddings and normalizes that average. These clip-selection and
+decision rules are sample code around the official encoder, not NVIDIA features.
+Only the best matching channel is renamed, and the original channel remains
+visible, for example `Billy (speaker_0): 1.66s -> 8.79s`. Short or unmatched
+speakers keep their original `speaker_N` labels. Segment times are unchanged.
+
+Cosine scores are printed for inspection; they are **not confidence percentages**.
+The default threshold of `0.86` comes from Microsoft's example, which notes it is
+dataset-dependent. This sample also abstains when the top two speakers' scores
+differ by less than `0.05`. Neither rule guarantees identity accuracy. Test with
+separate recordings of the enrolled person and other people before adjusting:
+
+```powershell
+python test_diarization.py meeting.wav --voice-profile profiles/billy.voice.json --match-threshold 0.90
+```
+
+A higher threshold is stricter; lowering it can incorrectly label other people.
+Microphones, noise, voice changes, and diarization mistakes affect results.
+This is an experimental naming convenience, not identity authentication.
+Voice matching time is reported separately; GPU peak memory includes the optional
+voice model when used. No transcript or external voice-identification service is
+involved.
+
+Run the local policy tests (no model downloads):
+
+```powershell
+python -m unittest test_voice_matching -v
+```
+
+Validation on the RTX 5060 Ti: seven policy tests passed, and real GPU enrollment
+and matching completed without additional packages. A 7.13-second anonymous
+speaker clip was enrolled; testing on a later portion of the same recording
+(excluding enrollment audio) gave similarities of `0.973` for that speaker and
+`0.773` for the other speaker. The default threshold matched only the former.
+Matching added 1.87 seconds on that run, with 902.8 MiB peak allocated VRAM for
+the combined pipeline. This checks integration on one recording, not recognition
+accuracy across recordings or microphones. No real-person name was assigned in
+the test. Plain diarization also passed its original silence smoke test.
+
+WavLM emitted an upstream PyTorch attention-mask type deprecation warning;
+inference completed successfully. This is separate from the existing Transformers
+docstring diagnostic noted below.
 
 ## Output and verification
 

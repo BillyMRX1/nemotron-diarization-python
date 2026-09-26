@@ -11,3 +11,13 @@ python test_diarization.py "C:\path\to\meeting.wav"
 ```
 
 Recordings and the virtual environment are excluded from Git.
+
+Optional voice enrollment (use a WAV with only the named person):
+
+```powershell
+python enroll_voice.py billy_only.wav --name Billy
+python test_diarization.py meeting.wav --voice-profile profiles/billy.voice.json
+```
+
+Voice profiles are also excluded from Git. See the repository README for
+thresholds, enrollment requirements, and matching limitations.
