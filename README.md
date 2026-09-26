@@ -67,15 +67,15 @@ Nemotron or teach it persistent identities.
 From `nemotron-diarization-test`, with the virtual environment activated:
 
 ```powershell
-# billy_only.wav must contain ONLY Billy's voice, ideally 10-30 seconds.
-python enroll_voice.py billy_only.wav --name Billy
+# person_only.wav must contain ONLY Person's voice, ideally 10-30 seconds.
+python enroll_voice.py person_only.wav --name Person
 
 # Compare speakers in a different recording with that saved profile.
-python test_diarization.py meeting_converted.wav --voice-profile profiles/billy.voice.json
+python test_diarization.py meeting_converted.wav --voice-profile profiles/person.voice.json
 ```
 
-Enrollment saves `profiles/billy.voice.json` next to the scripts. To choose a
-different destination, pass `--output profiles/billy_new.voice.json`. Existing
+Enrollment saves `profiles/person.voice.json` next to the scripts. To choose a
+different destination, pass `--output profiles/person_new.voice.json`. Existing
 profiles are never overwritten. Delete a profile locally to forget it, or create
 a new one to replace an old enrollment. All `profiles/` directories and
 `*.voice.json` files are excluded from Git, along with recordings. Profiles
@@ -102,7 +102,7 @@ least 5 seconds total. It averages
 normalized clip embeddings and normalizes that average. These clip-selection and
 decision rules are sample code around the official encoder, not NVIDIA features.
 Only the best matching channel is renamed, and the original channel remains
-visible, for example `Billy (speaker_0): 1.66s -> 8.79s`. Short or unmatched
+visible, for example `Person (speaker_0): 1.66s -> 8.79s`. Short or unmatched
 speakers keep their original `speaker_N` labels. Segment times are unchanged.
 
 Cosine scores are printed for inspection; they are **not confidence percentages**.
@@ -112,7 +112,7 @@ differ by less than `0.05`. Neither rule guarantees identity accuracy. Test with
 separate recordings of the enrolled person and other people before adjusting:
 
 ```powershell
-python test_diarization.py meeting.wav --voice-profile profiles/billy.voice.json --match-threshold 0.90
+python test_diarization.py meeting.wav --voice-profile profiles/person.voice.json --match-threshold 0.90
 ```
 
 A higher threshold is stricter; lowering it can incorrectly label other people.

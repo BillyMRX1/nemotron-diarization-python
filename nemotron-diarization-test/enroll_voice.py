@@ -10,7 +10,7 @@ import traceback
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("audio", type=Path, help="WAV with only the person to enroll; 10-30 seconds recommended")
-    parser.add_argument("--name", required=True, help="Display name, e.g. Billy")
+    parser.add_argument("--name", required=True, help="Display name, e.g. Person")
     parser.add_argument("--output", type=Path, help="Destination ending .voice.json; default profiles/<name>.voice.json")
     args = parser.parse_args()
     name = args.name.strip()
