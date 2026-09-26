@@ -1,0 +1,6 @@
+# Install CUDA PyTorch separately using the command in README.md.
+git+https://github.com/huggingface/transformers@27166ea03f12c940f23176a904ab1d2ff1a3dcbb
+numpy
+soundfile
+soxr
+librosa

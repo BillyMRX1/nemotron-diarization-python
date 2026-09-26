@@ -1,0 +1,14 @@
+# Local environments, audio, and generated diagnostics
+.venv/
+__pycache__/
+*.py[cod]
+*.[wW][aA][vV]
+*.[mM]4[aA]
+*.mp3
+*.flac
+*.ogg
+*.opus
+smoke-test-output.txt
+smoke-test-stderr.txt
+.env
+.env.*
